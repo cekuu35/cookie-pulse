@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cookie Pulse</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <span class="eyebrow">COOKIE CHAIN · ON-CHAIN ACTIVITY</span>
+      <h1>Cookie Pulse</h1>
+      <p>Connect a wallet, publish a lightweight on-chain pulse, and inspect the latest activity without leaving the page.</p>
+      <button id="connect" class="primary">Connect Nightly wallet</button>
+      <p id="wallet" class="muted">Wallet not connected</p>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Publish a pulse</h2>
+        <label for="message">Message</label>
+        <textarea id="message" maxlength="120" placeholder="What are you building on Cookie Chain?"></textarea>
+        <button id="publish" class="secondary" disabled>Connect wallet first</button>
+        <p id="status" class="status" role="status"></p>
+      </article>
+      <article class="card">
+        <h2>Network</h2>
+        <dl>
+          <div><dt>RPC</dt><dd>rpc.cookiescan.io</dd></div>
+          <div><dt>Wallet</dt><dd>Nightly compatible</dd></div>
+          <div><dt>Action</dt><dd>Memo transaction</dd></div>
+        </dl>
+        <button id="refresh" class="ghost">Refresh latest block</button>
+        <p id="block" class="muted">Block height unavailable</p>
+      </article>
+    </section>
+
+    <section class="card activity">
+      <div class="row"><h2>How it works</h2><span class="pill">No custody</span></div>
+      <ol>
+        <li>The app requests a connection from the user's wallet.</li>
+        <li>The user signs a memo transaction; the app never receives keys.</li>
+        <li>The transaction signature is shown as reproducible evidence.</li>
+      </ol>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
