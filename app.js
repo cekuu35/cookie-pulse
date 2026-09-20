@@ -53,11 +53,13 @@ async function publishPulse() {
       chain: 'solana:mainnet',
       options: { commitment: 'confirmed' }
     };
-    if (features?.['standard:signAndSendTransaction']?.signAndSendTransaction) {
-      const result = await features['standard:signAndSendTransaction'].signAndSendTransaction(payload);
+    const signAndSend = features?.['solana:signAndSendTransaction'] || features?.['standard:signAndSendTransaction'];
+    const sign = features?.['solana:signTransaction'] || features?.['standard:signTransaction'];
+    if (signAndSend?.signAndSendTransaction) {
+      const result = await signAndSend.signAndSendTransaction(payload);
       signature = bs58.encode(result[0].signature);
-    } else if (features?.['standard:signTransaction']?.signTransaction) {
-      const signed = await features['standard:signTransaction'].signTransaction(payload);
+    } else if (sign?.signTransaction) {
+      const signed = await sign.signTransaction(payload);
       signature = await connection.sendRawTransaction(signed[0].signedTransaction, { preflightCommitment: 'confirmed' });
     } else {
       if (!window.solana?.signAndSendTransaction) throw new Error('Nightly signing API is unavailable. Update the Nightly extension and reload.');
