@@ -15,15 +15,20 @@ const setStatus = (text, kind = '') => { $('status').textContent = text; $('stat
 async function connectWallet() {
   nightly = window.nightly?.solana;
   const legacyWallet = window.solana;
-  if (!nightly?.features?.['standard:connect']?.connect && !legacyWallet?.connect) {
+  const standardConnect = nightly?.features?.['standard:connect']?.connect;
+  const directConnect = nightly?.connect;
+  if (!standardConnect && !directConnect && !legacyWallet?.connect) {
     setStatus('Install or enable the Nightly wallet extension.', 'error');
     return;
   }
   try {
-    if (nightly?.features?.['standard:connect']?.connect) {
-      const result = await nightly.features['standard:connect'].connect({});
+    if (standardConnect) {
+      const result = await standardConnect({});
       walletAccount = result.accounts[0];
       publicKey = new PublicKey(walletAccount.address);
+    } else if (directConnect) {
+      const result = await directConnect();
+      publicKey = result.publicKey || new PublicKey(result);
     } else {
       const result = await legacyWallet.connect();
       publicKey = result.publicKey;
