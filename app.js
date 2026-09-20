@@ -46,15 +46,21 @@ async function publishPulse() {
       new TransactionInstruction({ keys: [], programId: MEMO_PROGRAM, data: new TextEncoder().encode(`cookie-pulse:${message}`) })
     );
     let signature;
-    if (nightly?.features?.['standard:signAndSendTransaction']?.signAndSendTransaction) {
-      const result = await nightly.features['standard:signAndSendTransaction'].signAndSendTransaction({
-        account: walletAccount,
-        transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
-        chain: 'solana:mainnet',
-        options: { commitment: 'confirmed' }
-      });
+    const features = nightly?.features;
+    const payload = {
+      account: walletAccount,
+      transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
+      chain: 'solana:mainnet',
+      options: { commitment: 'confirmed' }
+    };
+    if (features?.['standard:signAndSendTransaction']?.signAndSendTransaction) {
+      const result = await features['standard:signAndSendTransaction'].signAndSendTransaction(payload);
       signature = bs58.encode(result[0].signature);
+    } else if (features?.['standard:signTransaction']?.signTransaction) {
+      const signed = await features['standard:signTransaction'].signTransaction(payload);
+      signature = await connection.sendRawTransaction(signed[0].signedTransaction, { preflightCommitment: 'confirmed' });
     } else {
+      if (!window.solana?.signAndSendTransaction) throw new Error('Nightly signing API is unavailable. Update the Nightly extension and reload.');
       const signed = await window.solana.signAndSendTransaction(tx);
       signature = signed.signature;
     }
