@@ -2,6 +2,7 @@ import { Connection, PublicKey, Transaction, TransactionInstruction } from 'http
 import bs58 from 'https://esm.sh/bs58@6.0.0';
 
 const RPC = 'https://rpc.cookiescan.io';
+const COOKIE_GENESIS = '9wDaBRDgArEUpvhHxGguNkwozsZh4UpGZB9o2EoEcBB2';
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const connection = new Connection(RPC, 'confirmed');
 let publicKey = null;
@@ -30,9 +31,18 @@ async function connectWallet() {
     $('wallet').textContent = `${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-6)}`;
     $('connect').textContent = 'Wallet connected';
     $('publish').disabled = false;
+    $('switch').disabled = false;
     $('publish').textContent = 'Publish on-chain pulse';
     setStatus('Connected. Publishing requires a wallet signature and network fee.', 'info');
   } catch (error) { setStatus(error.message || 'Wallet connection cancelled.', 'error'); }
+}
+
+async function switchToCookieChain() {
+  if (!nightly?.changeNetwork) { setStatus('Nightly network switching is unavailable. Open Nightly network settings and add Cookie Chain manually.', 'error'); return; }
+  try {
+    await nightly.changeNetwork({ genesisHash: COOKIE_GENESIS, url: RPC });
+    setStatus('Cookie Chain network selected. Reconnect the wallet, then publish again.', 'success');
+  } catch (error) { setStatus(error.message || 'Network switch cancelled.', 'error'); }
 }
 
 async function publishPulse() {
@@ -40,6 +50,8 @@ async function publishPulse() {
   const message = $('message').value.trim();
   if (!message) { setStatus('Write a short message first.', 'error'); return; }
   try {
+    const balance = await connection.getBalance(publicKey, 'confirmed');
+    if (balance === 0) throw new Error('AccountNotFound: this wallet has no COOK on Cookie Chain. Switch networks, then fund the wallet with a small amount of COOK for the network fee.');
     setStatus('Preparing transaction…', 'info');
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
     const tx = new Transaction({ recentBlockhash: blockhash, feePayer: publicKey }).add(
@@ -77,6 +89,7 @@ async function refreshBlock() {
 }
 
 $('connect').addEventListener('click', connectWallet);
+$('switch').addEventListener('click', switchToCookieChain);
 $('publish').addEventListener('click', publishPulse);
 $('refresh').addEventListener('click', refreshBlock);
 refreshBlock();
