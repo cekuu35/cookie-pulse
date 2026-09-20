@@ -8,6 +8,8 @@ const connection = new Connection(RPC, 'confirmed');
 let publicKey = null;
 let walletAccount = null;
 let nightly = null;
+let activeProvider = null;
+let backpackProvider = null;
 
 const $ = (id) => document.getElementById(id);
 const setStatus = (text, kind = '') => { $('status').textContent = text; $('status').className = `status ${kind}`; };
@@ -15,14 +17,22 @@ const setStatus = (text, kind = '') => { $('status').textContent = text; $('stat
 async function connectWallet() {
   nightly = window.nightly?.solana;
   const legacyWallet = window.solana;
+  const backpack = window.backpack;
+  backpackProvider = backpack;
+  activeProvider = backpack || legacyWallet || nightly;
   const standardConnect = nightly?.features?.['standard:connect']?.connect;
   const directConnect = nightly?.connect;
-  if (!standardConnect && !directConnect && !legacyWallet?.connect) {
-    setStatus('Install or enable the Nightly wallet extension.', 'error');
+  if (!standardConnect && !directConnect && !legacyWallet?.connect && !backpack?.connect) {
+    setStatus('Install and enable Nightly or Backpack wallet.', 'error');
     return;
   }
   try {
-    if (standardConnect) {
+    if (backpack?.connect) {
+      const result = await backpack.connect();
+      const rawKey = result.publicKey || backpack.publicKey;
+      publicKey = rawKey instanceof PublicKey ? rawKey : new PublicKey(rawKey.toString());
+      walletAccount = { address: publicKey.toBase58 ? publicKey.toBase58() : String(publicKey) };
+    } else if (standardConnect) {
       const result = await standardConnect({});
       walletAccount = result.accounts[0];
       publicKey = new PublicKey(walletAccount.address);
@@ -34,7 +44,7 @@ async function connectWallet() {
       publicKey = result.publicKey;
     }
     $('wallet').textContent = `${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-6)}`;
-    $('connect').textContent = 'Wallet connected';
+    $('connect').textContent = backpack ? 'Backpack connected' : 'Wallet connected';
     $('publish').disabled = false;
     $('switch').disabled = false;
     $('publish').textContent = 'Publish on-chain pulse';
@@ -72,7 +82,10 @@ async function publishPulse() {
     };
     const signAndSend = features?.['solana:signAndSendTransaction'] || features?.['standard:signAndSendTransaction'];
     const sign = features?.['solana:signTransaction'] || features?.['standard:signTransaction'];
-    if (signAndSend?.signAndSendTransaction) {
+    if (activeProvider === backpackProvider && backpackProvider?.signAndSendTransaction) {
+      const result = await backpackProvider.signAndSendTransaction(tx);
+      signature = result.signature;
+    } else if (signAndSend?.signAndSendTransaction) {
       const result = await signAndSend.signAndSendTransaction(payload);
       signature = bs58.encode(result[0].signature);
     } else if (sign?.signTransaction) {
